@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import * as cheerio from 'cheerio';
+import {v5 as uuid} from 'uuid';
 
 const app = express();
 const port = 8000;
@@ -94,10 +95,10 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 	const torrentNames = [];
 	$('[data-fileext="torrent"]').each((index, value) => {
 		const torrentName = $(value).text();
-		const torrentFile = $(value).attr('href')
+		const torrentFile = $(value).attr('href');
 		torrentNames.push({
 			name: torrentName,
-			file: torrentFile
+			file: torrentFile,
 		});
 	});
 	const magnetLinks = [];
@@ -108,6 +109,7 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 			magnetLinks.push({
 				name: torrentNames[i]?.name?.replace('.torrent', ''),
 				torrentPath: torrentNames[i]?.file,
+				guid: uuid(torrentNames[i]?.name?.replace('.torrent'), '4d1d290e-e395-4ba3-9ef4-ec90def49826'),
 				magnet: magnetLink,
 			});
 			i++;
