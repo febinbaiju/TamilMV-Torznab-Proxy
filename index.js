@@ -1,19 +1,17 @@
 import fetch from 'node-fetch';
 import express from 'express';
-import cookieParser from 'cookie-parser';
-import bodyParser from 'body-parser';
 import cors from 'cors';
 import * as cheerio from 'cheerio';
 import {v5 as uuid} from 'uuid';
 import moment from 'moment';
+import _ from 'underscore';
 import xml from 'xml';
+import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 
 const app = express();
 const port = 8000;
 const TAMILMV_URL = 'https://www.1tamilmv.wtf';
 
-app.use(cookieParser());
-app.use(bodyParser.urlencoded({extended: true}));
 app.use(cors());
 
 const searchMovies = async keyword => {
@@ -141,6 +139,7 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 				_attr: {
 					version: '2.0',
 					'xmlns:atom': 'http://www.w3.org/2005/Atom',
+					'xmlns:torznab': 'http://torznab.com/schemas/2015/feed',
 				},
 			},
 			{
@@ -148,20 +147,25 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 					{
 						'atom:link': {
 							_attr: {
-								href: '/',
+								href: baseUrl,
 								rel: 'self',
 								type: 'application/rss+xml',
 							},
 						},
 					},
+
 					{
 						title: 'TamilMV RSS',
 					},
+
 					{
 						link: baseUrl,
 					},
 					{description: 'TamilMV RSS Generator Developed By Febin Baiju'},
 					{language: 'en-US'},
+					{
+						category: 2000,
+					},
 					...magnetInfo.map(post => {
 						const feedItem = {
 							item: [
@@ -172,7 +176,7 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 									},
 								},
 								{
-									link: post.magnet,
+									link: post.torrentPath,
 								},
 								{
 									guid: post.guid,
@@ -184,6 +188,12 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 								{
 									enclosure: {_attr: {url: post.torrentPath, type: 'application/x-bittorrent', length: '10000'}},
 								},
+								{comments: post.name},
+
+								// {'torznab:attr':{_attr:{name: 'magneturl'		, value:torrent.link}}},
+								{'torznab:attr': {_attr: {name: 'seeders', value: 10}}},
+								{'torznab:attr': {_attr: {name: 'leechers', value: 10}}},
+								{'torznab:attr': {_attr: {name: 'size', value: 1000}}},
 							],
 						};
 						return feedItem;
@@ -192,21 +202,65 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 			},
 		],
 	};
-	const feed = '<?xml version="1.0" encoding="UTF-8"?>' + xml(feedObject);
-	return feed;
+	return feedObject;
 };
 
-app.get('/', async (request, response) => {
-	const keyword = 'nanpakal';
+const torznabTest = async () => {
+	const xmlString = {
+		caps:
+			[
+				{server: {_attr: {version: '1.0', title: 'TamilMV Torznab', image: 'https://www.1tamilmv.wtf/uploads/monthly_2022_04/logo.png.48e7e1b21914fd0b2a6e9a3d1b1d7db2.png'}}},
+				{limits: {_attr: {max: '100', default: 50}}},
+				{registration: {_attr: {available: 'no', open: 'no'}}},
+				{searching: [
+					{search: {_attr: {available: 'yes'}}},
+					{'tv-search': {_attr: {available: 'yes', supportedParams: 'q,rid,tvdbid,tvmazeid,season,ep'}}},
+					{'movie-search': {_attr: {available: 'yes', supportedParams: 'q,imdbid'}}},
+				]},
+				{categories: []},
+			],
+	};
+
+	const categoriesXml = xmlString.caps[_.findIndex(xmlString.caps, 'categories')].categories;
+	for (const category of [{
+		pid: 0,
+		id: 2000,
+		name: 'Movies',
+	}]) {
+		if (category.pid === 0) {
+			categoriesXml.push({category: [
+				{_attr: {id: category.id, name: category.name}},
+			],
+			});
+		} else {
+			_.find(categoriesXml, object => _.some(object.category, objc => objc._attr !== undefined && objc._attr.id === category.pid) !== undefined).category.push(
+				{subcat: [
+					{_attr: {id: category.id, name: category.name}},
+				],
+				});
+		}
+	}
+
+	return xmlString;
+};
+
+app.get('/api', async (request, response) => {
+	const keyword = request.query.q || 'nanpakal';
+	const testMode = request.query.t === 'caps';
+	let rssFeed;
 	try {
 		const body = await searchMovies(keyword);
 		if (body) {
 			try {
-				const topics = await getAllTopics(body);
-				const magnetInfo = await scrapTorrents(topics, keyword);
-				const rssFeed = await createRssFeed(request.protocol + '://' + request.get('host'), magnetInfo);
-				response.set('Content-Type', 'text/xml');
-				return response.send(rssFeed);
+				console.log(request.query);
+
+				if (testMode) {
+					rssFeed = await torznabTest();
+				} else {
+					const topics = await getAllTopics(body);
+					const magnetInfo = await scrapTorrents(topics, keyword);
+					rssFeed = await createRssFeed(request.protocol + '://' + request.get('host'), magnetInfo);
+				}
 			} catch {
 				console.error('Error fetching topics');
 				return response.sendStatus(529).json({
@@ -222,6 +276,24 @@ app.get('/', async (request, response) => {
 			status: 'FAILED',
 		});
 	}
+
+	const parser = new XMLParser({
+		ignoreAttributes: false,
+		preserveOrder: true,
+		cdataPropName: '__cdata',
+	});
+
+	const feed = `<?xml version="1.0" encoding="UTF-8" ?>${xml(rssFeed)}`;
+	const builder = new XMLBuilder({
+		ignoreAttributes: false,
+		preserveOrder: true,
+		cdataPropName: '__cdata',
+		format: true,
+	});
+	const xmlContent = builder.build(parser.parse(feed));
+
+	response.contentType('Content-Type', 'text/xml');
+	return response.send(xmlContent);
 });
 
 app.listen(port, error => {
