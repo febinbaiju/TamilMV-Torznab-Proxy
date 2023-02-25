@@ -6,13 +6,13 @@ import cors from 'cors';
 import * as cheerio from 'cheerio';
 import {v5 as uuid} from 'uuid';
 import moment from 'moment';
+import xml from 'xml';
 
 const app = express();
 const port = 8000;
 const TAMILMV_URL = 'https://www.1tamilmv.wtf';
 
 app.use(cookieParser());
-app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cors());
 
@@ -134,6 +134,43 @@ const scrapTorrents = async (topics, keyword) => {
 	return torrentCollection.flat(1);
 };
 
+const createRssFeed = async (baseUrl, magnetInfo) => {
+	const feedObject = {
+		rss: [
+			{
+				_attr: {
+					version: '2.0',
+					'xmlns:atom': 'http://www.w3.org/2005/Atom',
+				},
+			},
+			{
+				channel: [
+					{
+						'atom:link': {
+							_attr: {
+								href: '/feed.rss',
+								rel: 'self',
+								type: 'application/rss+xml',
+							},
+						},
+					},
+					{
+						title: 'TamilMV RSS',
+					},
+					{
+						link: baseUrl,
+					},
+					{description: 'TamilMV RSS Generator Developed By Febin Baiju'},
+					{language: 'en-US'},
+					// Todo: add the feed items here
+				],
+			},
+		],
+	};
+	const feed = '<?xml version="1.0" encoding="UTF-8"?>' + xml(feedObject);
+	return feed;
+};
+
 app.get('/', async (request, response) => {
 	const keyword = 'nanpakal';
 	try {
@@ -141,7 +178,10 @@ app.get('/', async (request, response) => {
 		if (body) {
 			try {
 				const topics = await getAllTopics(body);
-				return response.send(await scrapTorrents(topics, keyword));
+				const magnetInfo = await scrapTorrents(topics, keyword);
+				const rssFeed = await createRssFeed(request.protocol + '://' + request.get('host'), magnetInfo);
+				response.set('Content-Type', 'text/xml');
+				return response.send(rssFeed);
 			} catch {
 				console.error('Error fetching topics');
 				return response.sendStatus(529).json({
