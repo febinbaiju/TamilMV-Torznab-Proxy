@@ -148,7 +148,7 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 					{
 						'atom:link': {
 							_attr: {
-								href: '/feed.rss',
+								href: '/',
 								rel: 'self',
 								type: 'application/rss+xml',
 							},
@@ -162,7 +162,32 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 					},
 					{description: 'TamilMV RSS Generator Developed By Febin Baiju'},
 					{language: 'en-US'},
-					// Todo: add the feed items here
+					...magnetInfo.map(post => {
+						const feedItem = {
+							item: [
+								{title: post.name},
+								{
+									description: {
+										_cdata: post.name,
+									},
+								},
+								{
+									link: post.magnet,
+								},
+								{
+									guid: post.guid,
+
+								},
+								{
+									pubDate: post.publishedDate,
+								},
+								{
+									enclosure: {_attr: {url: post.torrentPath, type: 'application/x-bittorrent', length: '10000'}},
+								},
+							],
+						};
+						return feedItem;
+					}),
 				],
 			},
 		],
