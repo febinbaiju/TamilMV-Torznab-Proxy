@@ -94,7 +94,11 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 	const torrentNames = [];
 	$('[data-fileext="torrent"]').each((index, value) => {
 		const torrentName = $(value).text();
-		torrentNames.push(torrentName);
+		const torrentFile = $(value).attr('href')
+		torrentNames.push({
+			name: torrentName,
+			file: torrentFile
+		});
 	});
 	const magnetLinks = [];
 	let i = 0;
@@ -102,8 +106,9 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 		const magnetLink = $(value).attr('href');
 		if (magnetLink && magnetLink.startsWith('magnet:')) {
 			magnetLinks.push({
-				name: torrentNames[i]?.replace('.torrent', ''),
-				link: magnetLink,
+				name: torrentNames[i]?.name?.replace('.torrent', ''),
+				torrentPath: torrentNames[i]?.file,
+				magnet: magnetLink,
 			});
 			i++;
 		}
