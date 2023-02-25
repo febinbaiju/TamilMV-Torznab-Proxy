@@ -70,9 +70,29 @@ const getAllTopics = async content => {
 };
 
 app.get('/', async (request, response) => {
-	const body = await searchMovies('sagar');
-	const topics = await getAllTopics(body);
-	response.send(body);
+	try {
+		const body = await searchMovies('nanpakal');
+		if (body) {
+			try {
+				const topics = await getAllTopics(body);
+				console.log(topics);
+			} catch {
+				console.error('Error fetching topics');
+				return response.sendStatus(521).json({
+					message: 'Could not get topics',
+					status: 'FAILED',
+				});
+			}
+
+			return response.send(body);
+		}
+	} catch {
+		console.error(`Error connecting to ${TAMILMV_URL}`);
+		return response.sendStatus(521).json({
+			message: `Could not connect to the server ${TAMILMV_URL}`,
+			status: 'FAILED',
+		});
+	}
 });
 
 app.listen(port, error => {
