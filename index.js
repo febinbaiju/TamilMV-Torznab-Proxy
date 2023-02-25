@@ -6,6 +6,7 @@ import cors from 'cors';
 
 const app = express();
 const port = 8000;
+const TAMILMV_URL = 'https://www.1tamilmv.wtf';
 
 app.use(cookieParser());
 app.use(bodyParser.json());
@@ -13,13 +14,13 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cors());
 
 const searchMovies = async keyword => {
-	const f = await fetch(`https://www.1tamilmv.wtf/index.php?/search/&q=${keyword}&quick=1`, {
+	const grabToken = await fetch(`${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`, {
 		headers: {
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0',
 			Accept: '*/*',
 			'Accept-Language': 'en-US,en;q=0.5',
 			'Accept-Encoding': 'gzip, deflate, br',
-			Referer: `https://www.1tamilmv.wtf/index.php?/search/&q=${keyword}&quick=1`,
+			Referer: `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`,
 			'X-Requested-With': 'XMLHttpRequest',
 			'Sec-Fetch-Dest': 'empty',
 			'Sec-Fetch-Mode': 'cors',
@@ -30,10 +31,10 @@ const searchMovies = async keyword => {
 			TE: 'trailers',
 		},
 	});
-	const jsonBody = f.json();
-	const csrfKey = (await jsonBody).filters?.toString()?.match('<input type="hidden" name="csrfKey" value="(.+)">')?.[1] || '';
+	const tokenResult = await grabToken.json();
+	const csrfKey = (tokenResult).filters?.toString()?.match('<input type="hidden" name="csrfKey" value="(.+)">')?.[1] || '';
 
-	const grabResults = await fetch(`https://www.1tamilmv.wtf/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy&csrfKey=${csrfKey}`, {
+	const grabResults = await fetch(`${TAMILMV_URL}/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy&csrfKey=${csrfKey}`, {
 		credentials: 'include',
 		headers: {
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0',
@@ -45,16 +46,33 @@ const searchMovies = async keyword => {
 			'Sec-Fetch-Site': 'same-origin',
 			'Proxy-Authorization': 'Basic ZDc5YW1ibmktZ3A4ZHkyczozOWpkeXFtOHVu',
 		},
-		referrer: 'https://www.1tamilmv.wtf/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy',
+		referrer: `${TAMILMV_URL}/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy`,
 		method: 'GET',
 		mode: 'cors',
 	});
-	return (await grabResults.json())?.content || ""
+	const searchResultsJson = await grabResults?.json();
+	return (searchResultsJson)?.content || '';
 };
 
-app.get('/', async (request, res) => {
-	const body = await searchMovies('nanpakal');
-	res.send(body);
+const getAllTopics = async content => {
+	const topicResults = content.matchAll(/<a href='(.+)' data-linkType="link" data-searchable>(.+)<\/a>/g);
+	const iterResults = [...topicResults];
+	const finalTopics = [];
+	for (const match of iterResults) {
+		const [, g1, g2] = match;
+		finalTopics.push({
+			url: g1,
+			title: g2,
+		});
+	}
+
+	return finalTopics;
+};
+
+app.get('/', async (request, response) => {
+	const body = await searchMovies('sagar');
+	const topics = await getAllTopics(body);
+	response.send(body);
 });
 
 app.listen(port, error => {
