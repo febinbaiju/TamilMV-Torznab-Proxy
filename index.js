@@ -3,6 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import * as cheerio from 'cheerio';
 
 const app = express();
 const port = 8000;
@@ -69,22 +70,75 @@ const getAllTopics = async content => {
 	return finalTopics;
 };
 
+const getMagnetLinks = async (topicUrl, keyword) => {
+	console.log('fetching:', topicUrl);
+	const topicBody = await fetch(topicUrl, {
+		credentials: 'include',
+		headers: {
+			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0',
+			Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+			'Accept-Language': 'en-US,en;q=0.5',
+			'Upgrade-Insecure-Requests': '1',
+			'Sec-Fetch-Dest': 'document',
+			'Sec-Fetch-Mode': 'navigate',
+			'Sec-Fetch-Site': 'same-origin',
+			'Sec-Fetch-User': '?1',
+			'Proxy-Authorization': 'Basic ZDc5YW1ibmktZ3A4ZHkyczozOWpkeXFtOHVu',
+		},
+		referrer: `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1&type=forums_topic`,
+		method: 'GET',
+		mode: 'cors',
+	});
+	const forumTopic = await topicBody.text();
+	const $ = await cheerio.load(forumTopic);
+	const torrentNames = [];
+	$('[data-fileext="torrent"]').each((index, value) => {
+		const torrentName = $(value).text();
+		torrentNames.push(torrentName);
+	});
+	const magnetLinks = [];
+	let i = 0;
+	$('a').each((index, value) => {
+		const magnetLink = $(value).attr('href');
+		if (magnetLink && magnetLink.startsWith('magnet:')) {
+			magnetLinks.push({
+				name: torrentNames[i]?.replace('.torrent', ''),
+				link: magnetLink,
+			});
+			i++;
+		}
+	});
+
+	return magnetLinks;
+};
+
+const scrapTorrents = async (topics, keyword) => {
+	const torrentCollection = [];
+	for (let i = 0; i <= topics.length; i++) {
+		if (topics[i]?.url) {
+			const topicTorrent = await getMagnetLinks(topics[i]?.url, keyword); // eslint-disable-line no-await-in-loop
+			torrentCollection.push(topicTorrent);
+		}
+	}
+
+	return torrentCollection.flat(1);
+};
+
 app.get('/', async (request, response) => {
+	const keyword = 'nanpakal';
 	try {
-		const body = await searchMovies('nanpakal');
+		const body = await searchMovies(keyword);
 		if (body) {
 			try {
 				const topics = await getAllTopics(body);
-				console.log(topics);
+				return response.send(await scrapTorrents(topics, keyword));
 			} catch {
 				console.error('Error fetching topics');
-				return response.sendStatus(521).json({
+				return response.sendStatus(529).json({
 					message: 'Could not get topics',
 					status: 'FAILED',
 				});
 			}
-
-			return response.send(body);
 		}
 	} catch {
 		console.error(`Error connecting to ${TAMILMV_URL}`);
