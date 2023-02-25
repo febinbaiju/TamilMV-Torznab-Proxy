@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import * as cheerio from 'cheerio';
 import {v5 as uuid} from 'uuid';
+import moment from 'moment';
 
 const app = express();
 const port = 8000;
@@ -91,6 +92,7 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 		mode: 'cors',
 	});
 	const forumTopic = await topicBody.text();
+	const publishedDate = forumTopic.match('"dateModified": "(.+)"')?.[1];
 	const $ = await cheerio.load(forumTopic);
 	const torrentNames = [];
 	$('[data-fileext="torrent"]').each((index, value) => {
@@ -111,6 +113,7 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 				torrentPath: torrentNames[i]?.file,
 				guid: uuid(torrentNames[i]?.name?.replace('.torrent'), '4d1d290e-e395-4ba3-9ef4-ec90def49826'),
 				magnet: magnetLink,
+				publishedDate: moment(publishedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss ZZ'),
 			});
 			i++;
 		}
