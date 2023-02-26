@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer';
 import fetch from 'node-fetch';
 import express from 'express';
 import cors from 'cors';
@@ -7,6 +8,7 @@ import moment from 'moment';
 import _ from 'underscore';
 import xml from 'xml';
 import {XMLBuilder, XMLParser} from 'fast-xml-parser';
+import parseTorrent from 'parse-torrent';
 
 const app = express();
 const port = 8000;
@@ -104,15 +106,22 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 	});
 	const magnetLinks = [];
 	let i = 0;
-	$('a').each((index, value) => {
+	$('a').each(async (index, value) => {
 		const magnetLink = $(value).attr('href');
 		if (magnetLink && magnetLink.startsWith('magnet:')) {
+			const torrentFetch = await fetch(torrentNames[i]?.file);
+
+			const torrentBuffer = (Buffer.from(await torrentFetch.arrayBuffer()));
+			const torrentInfo = await parseTorrent(torrentBuffer);
+			const torrentSize = (torrentInfo?.info?.length) || 1000;
+
 			magnetLinks.push({
 				name: torrentNames[i]?.name?.replace('.torrent', ''),
 				torrentPath: torrentNames[i]?.file,
 				guid: uuid(torrentNames[i]?.name?.replace('.torrent'), '4d1d290e-e395-4ba3-9ef4-ec90def49826'),
 				magnet: magnetLink,
 				publishedDate: moment(publishedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss ZZ'),
+				torrentSize,
 			});
 			i++;
 		}
@@ -203,7 +212,7 @@ const createRssFeed = async (baseUrl, magnetInfo, request) => {
 								// {'torznab:attr':{_attr:{name: 'magneturl'		, value:torrent.link}}},
 								{'torznab:attr': {_attr: {name: 'seeders', value: 10}}},
 								{'torznab:attr': {_attr: {name: 'leechers', value: 10}}},
-								{'torznab:attr': {_attr: {name: 'size', value: 1000}}},
+								{'torznab:attr': {_attr: {name: 'size', value: post.torrentSize}}},
 							],
 						};
 						return feedItem;
