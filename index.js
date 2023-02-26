@@ -94,7 +94,7 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 	});
 	const forumTopic = await topicBody.text();
 	const publishedDate = forumTopic.match('"dateModified": "(.+)"')?.[1];
-	const $ = await cheerio.load(forumTopic);
+	const $ = cheerio.load(forumTopic);
 	const torrentNames = [];
 	$('[data-fileext="torrent"]').each((index, value) => {
 		const torrentName = $(value).text();
@@ -105,13 +105,16 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 		});
 	});
 	const magnetLinks = [];
-	let i = 0;
-	$('a').each(async (index, value) => {
-		const magnetLink = $(value).attr('href');
+	const aElements = $('a').get();
+	for (let k = 0, i = 0; k < aElements.length; k++) {
+		const magnetLink = $(aElements[k]).attr('href');
 		if (magnetLink && magnetLink.startsWith('magnet:')) {
+			// eslint-disable-next-line no-await-in-loop
 			const torrentFetch = await fetch(torrentNames[i]?.file);
 
+			// eslint-disable-next-line no-await-in-loop
 			const torrentBuffer = (Buffer.from(await torrentFetch.arrayBuffer()));
+			// eslint-disable-next-line no-await-in-loop
 			const torrentInfo = await parseTorrent(torrentBuffer);
 			const torrentSize = (torrentInfo?.info?.length) || 1000;
 
@@ -125,7 +128,7 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 			});
 			i++;
 		}
-	});
+	}
 
 	return magnetLinks;
 };
