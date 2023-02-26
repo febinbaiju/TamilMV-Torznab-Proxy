@@ -324,6 +324,7 @@ app.get('/api', async (request, response) => {
 					rssFeed = await noTopics(baseUrl);
 				} else {
 					const topics = await getAllTopics(body);
+					// eslint-disable-next-line max-depth
 					if (topics.length > 0) {
 						const magnetInfo = await scrapTorrents(topics, keyword);
 						rssFeed = magnetInfo.length > 0 ? await createRssFeed(baseUrl, magnetInfo, request.query) : await noTopics(baseUrl);
