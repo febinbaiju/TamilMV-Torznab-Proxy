@@ -15,6 +15,7 @@ const TAMILMV_URL = 'https://www.1tamilmv.wtf';
 app.use(cors());
 
 const searchMovies = async keyword => {
+	console.log('Page:', `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`);
 	const grabToken = await fetch(`${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`, {
 		headers: {
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0',
@@ -132,7 +133,7 @@ const scrapTorrents = async (topics, keyword) => {
 	return torrentCollection.flat(1);
 };
 
-const createRssFeed = async (baseUrl, magnetInfo) => {
+const createRssFeed = async (baseUrl, magnetInfo, request) => {
 	const feedObject = {
 		rss: [
 			{
@@ -162,11 +163,20 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 						link: baseUrl,
 					},
 					{description: 'TamilMV RSS Generator Developed By Febin Baiju'},
-					{language: 'en-US'},
-					{
-						category: 2000,
+					{'torznab:response':
+								{_attr: {
+									offset: request.offset >= 50 ? 0 : 0,
+									total: request.offset >= 50 ? 0 : 1,
+								},
+								},
 					},
-					...magnetInfo.map(post => {
+					(request?.offset < 50 ? {
+						language: 'en-US',
+					} : {}),
+					(request?.offset < 50 ? {
+						category: 2000,
+					} : {}),
+					...(request?.offset < 50 ? magnetInfo.map(post => {
 						const feedItem = {
 							item: [
 								{title: post.name},
@@ -197,7 +207,7 @@ const createRssFeed = async (baseUrl, magnetInfo) => {
 							],
 						};
 						return feedItem;
-					}),
+					}) : {}),
 				],
 			},
 		],
@@ -215,7 +225,7 @@ const torznabTest = async () => {
 				{searching: [
 					{search: {_attr: {available: 'yes'}}},
 					{'tv-search': {_attr: {available: 'yes', supportedParams: 'q,rid,tvdbid,tvmazeid,season,ep'}}},
-					{'movie-search': {_attr: {available: 'yes', supportedParams: 'q,imdbid'}}},
+					{'movie-search': {_attr: {available: 'yes', supportedParams: 'q'}}},
 				]},
 				{categories: []},
 			],
@@ -244,22 +254,82 @@ const torznabTest = async () => {
 	return xmlString;
 };
 
+const noTopics = async baseUrl => {
+	const feedObject = {
+		rss: [
+			{
+				_attr: {
+					version: '2.0',
+					'xmlns:atom': 'http://www.w3.org/2005/Atom',
+					'xmlns:torznab': 'http://torznab.com/schemas/2015/feed',
+				},
+			},
+			{
+				channel: [
+					{
+						'atom:link': {
+							_attr: {
+								href: baseUrl,
+								rel: 'self',
+								type: 'application/rss+xml',
+							},
+						},
+					},
+
+					{
+						title: 'TamilMV RSS',
+					},
+
+					{
+						link: baseUrl,
+					},
+					{description: 'TamilMV RSS Generator Developed By Febin Baiju'},
+					{'torznab:response':
+								{_attr: {
+									offset: 0,
+									total: 0,
+								},
+								},
+					},
+				],
+			},
+		],
+	};
+	return feedObject;
+};
+
+const processKeyword = key => {
+	const searchKey = (key)?.toString()?.trim()?.split(' ')?.[0] || '';
+	if (searchKey) {
+		return encodeURIComponent(searchKey);
+	}
+
+	return '';
+};
+
 app.get('/api', async (request, response) => {
-	const keyword = request.query.q || 'nanpakal';
+	console.log('query', request.query);
+	const baseUrl = request.protocol + '://' + request.get('host');
+	const keyword = processKeyword(request.query.q) || 'nanpakal';
+	console.log('Keyword:', keyword);
 	const testMode = request.query.t === 'caps';
 	let rssFeed;
 	try {
 		const body = await searchMovies(keyword);
 		if (body) {
 			try {
-				console.log(request.query);
-
 				if (testMode) {
 					rssFeed = await torznabTest();
+				} else if (request.query.offset >= 50) {
+					rssFeed = await noTopics(baseUrl);
 				} else {
 					const topics = await getAllTopics(body);
-					const magnetInfo = await scrapTorrents(topics, keyword);
-					rssFeed = await createRssFeed(request.protocol + '://' + request.get('host'), magnetInfo);
+					if (topics.length > 0) {
+						const magnetInfo = await scrapTorrents(topics, keyword);
+						rssFeed = magnetInfo.length > 0 ? await createRssFeed(baseUrl, magnetInfo, request.query) : await noTopics(baseUrl);
+					} else {
+						rssFeed = await noTopics(baseUrl);
+					}
 				}
 			} catch {
 				console.error('Error fetching topics');
