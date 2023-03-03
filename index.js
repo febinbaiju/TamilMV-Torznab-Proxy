@@ -11,7 +11,7 @@ import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import parseTorrent from 'parse-torrent';
 
 const app = express();
-const port = 8000;
+const port = 5000;
 const TAMILMV_URL = 'https://www.1tamilmv.wtf';
 
 app.use(cors());
