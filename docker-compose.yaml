@@ -3,12 +3,10 @@ services:
   gluetun:
     container_name: glutun-vpn
     image: qmcgaw/gluetun
-    devices:
-      - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
     volumes:
-      - /glutun:/portainer/Files/AppData/Config/qBittorrent
+      - /portainer/Files/AppData/Config/qBittorrent:/gluetunZZZZZ
     environment:
       - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=wireguard
@@ -16,15 +14,30 @@ services:
       - WIREGUARD_ADDRESSES=10.14.0.2/16
       - SERVER_COUNTRIES=United States,Netherlands,Switzerland,Australia,United Kingdom,Canada
     ports:
-      - 8722:5000
+      - "8722:5000/tcp"
+      - "2880:1080/tcp"
+      - "6881:6881/tcp"
+      - "8080:8080/tcp"
+      - "9117:9117/tcp"
+      - "6881:6881/udp"
     restart: "unless-stopped"
+  
   proxy-server:
     container_name: "tamilmv-torznab-proxy"
     image: "febinbaiju/tamilmv-torznab-proxy"
+    environment:
+      - TAMILMV_URL=https://www.1tamilmv.wtf/
     depends_on:
       gluetun:
-        condition: "service_healthy"
-    environment:
-      - TAMILMV_URL=http://tamilmv.wtf
+        condition: service_healthy
+    network_mode: "service:gluetun"
+    restart: "unless-stopped"
+
+  socks5-proxy:
+    container_name: "go-socks5-proxy"
+    image: "serjs/go-socks5-proxy"
+    depends_on:
+      gluetun:
+        condition: service_healthy
     network_mode: "service:gluetun"
     restart: "unless-stopped"
