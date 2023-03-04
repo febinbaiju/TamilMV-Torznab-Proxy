@@ -3,12 +3,12 @@ services:
   gluetun:
     container_name: glutun-vpn
     image: qmcgaw/gluetun
+    devices:
+      - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
     volumes:
       - /glutun:/portainer/Files/AppData/Config/qBittorrent
-    devices:
-      - /dev/net/tun:/dev/net/tun
     environment:
       - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=wireguard
