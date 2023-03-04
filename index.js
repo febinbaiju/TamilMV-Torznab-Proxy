@@ -1,4 +1,5 @@
 import {Buffer} from 'node:buffer';
+import process from 'node:process';
 import fetch from 'node-fetch';
 import express from 'express';
 import cors from 'cors';
@@ -12,7 +13,7 @@ import parseTorrent from 'parse-torrent';
 
 const app = express();
 const port = 5000;
-const TAMILMV_URL = 'https://www.1tamilmv.wtf';
+const TAMILMV_URL = process.env.TAMILMV_URL;
 
 app.use(cors());
 
@@ -231,12 +232,11 @@ const torznabTest = async () => {
 	const xmlString = {
 		caps:
 			[
-				{server: {_attr: {version: '1.0', title: 'TamilMV Torznab', image: 'https://www.1tamilmv.wtf/uploads/monthly_2022_04/logo.png.48e7e1b21914fd0b2a6e9a3d1b1d7db2.png'}}},
+				{server: {_attr: {version: '1.0', title: 'TamilMV Torznab', image: 'https://download.epson-europe.com/logo/true_epsonlogo.jpg'}}},
 				{limits: {_attr: {max: '100', default: 50}}},
 				{registration: {_attr: {available: 'no', open: 'no'}}},
 				{searching: [
 					{search: {_attr: {available: 'yes'}}},
-					{'tv-search': {_attr: {available: 'yes', supportedParams: 'q,rid,tvdbid,tvmazeid,season,ep'}}},
 					{'movie-search': {_attr: {available: 'yes', supportedParams: 'q'}}},
 				]},
 				{categories: []},
@@ -381,8 +381,8 @@ app.get('/api', async (request, response) => {
 
 app.listen(port, error => {
 	if (error) {
-		console.log('Error while starting server...');
+		console.log('Error while starting server', TAMILMV_URL, 'at', port);
 	} else {
-		console.log('Server has been started at port', port);
+		console.log('Server has been started', TAMILMV_URL, 'at port', port);
 	}
 });
