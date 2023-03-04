@@ -1,6 +1,7 @@
 version: '2.4'
 services:
   gluetun:
+    container_name: glutun-vpn
     image: qmcgaw/gluetun
     cap_add:
       - NET_ADMIN
@@ -12,7 +13,16 @@ services:
       - WIREGUARD_PRIVATE_KEY=oD8r97FzARwFG8vn42LVNHoTqU22P+1ew536ujprS3A=
       - WIREGUARD_ADDRESSES=10.14.0.2/16
       - SERVER_COUNTRIES=United States,Netherlands,Switzerland,Australia,United Kingdom,Canada
+    ports:
+      - 8722:5000
+    restart: "unless-stopped"
   proxy-server:
+    container_name: "tamilmv-torznab-proxy"
     image: "febinbaiju/tamilmv-torznab-proxy"
+    depends_on:
+      gluetun:
+        condition: "service_healthy"
     environment:
       - TAMILMV_URL=http://tamilmv.wtf
+    network_mode: "container:glutun-vpn"
+    restart: "unless-stopped"
