@@ -1,0 +1,6 @@
+version: '2.4'
+services:
+  proxy-server:
+    image: "febinbaiju/tamilmv-torznab-proxy"
+    environment:
+      - TAMILMV_URL=http://tamilmv.wtf
