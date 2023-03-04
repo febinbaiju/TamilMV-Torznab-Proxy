@@ -26,5 +26,5 @@ services:
         condition: "service_healthy"
     environment:
       - TAMILMV_URL=http://tamilmv.wtf
-    network_mode: "container:glutun-vpn"
+    network_mode: "service:gluetun"
     restart: "unless-stopped"
