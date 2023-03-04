@@ -1,5 +1,17 @@
 version: '2.4'
 services:
+  gluetun:
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /glutun:/portainer/Files/AppData/Config/qBittorrent
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=oD8r97FzARwFG8vn42LVNHoTqU22P+1ew536ujprS3A=
+      - WIREGUARD_ADDRESSES=10.14.0.2/16
+      - SERVER_COUNTRIES=United States,Netherlands,Switzerland,Australia,United Kingdom,Canada
   proxy-server:
     image: "febinbaiju/tamilmv-torznab-proxy"
     environment:
