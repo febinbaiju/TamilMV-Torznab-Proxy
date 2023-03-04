@@ -26,7 +26,7 @@ services:
     container_name: "tamilmv-torznab-proxy"
     image: "febinbaiju/tamilmv-torznab-proxy"
     environment:
-      - TAMILMV_URL=https://www.1tamilmv.wtf/
+      - TAMILMV_URL=https://www.1tamilmv.wtf
     depends_on:
       gluetun:
         condition: service_healthy
@@ -36,6 +36,21 @@ services:
   socks5-proxy:
     container_name: "go-socks5-proxy"
     image: "serjs/go-socks5-proxy"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    network_mode: "service:gluetun"
+    restart: "unless-stopped"
+  
+  jackett-proxy:
+    container_name: "jackett"
+    image: "linuxserver/jackett:latest"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - /portainer/Files/AppData/Config/Jackett:/config
+      - /portainer/Downloads:/downloads
     depends_on:
       gluetun:
         condition: service_healthy
