@@ -346,7 +346,7 @@ app.get('/api', async (request, response) => {
 				}
 			} catch {
 				console.error('Error fetching topics');
-				return response.sendStatus(529).json({
+				return response.status(529).json({
 					message: 'Could not get topics',
 					status: 'FAILED',
 				});
@@ -354,7 +354,7 @@ app.get('/api', async (request, response) => {
 		}
 	} catch {
 		console.error(`Error connecting to ${TAMILMV_URL}`);
-		return response.sendStatus(521).json({
+		return response.status(521).json({
 			message: `Could not connect to the server ${TAMILMV_URL}`,
 			status: 'FAILED',
 		});
