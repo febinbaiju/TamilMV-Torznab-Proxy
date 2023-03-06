@@ -6,27 +6,24 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - /portainer/Files/AppData/Config/qBittorrent:/gluetun
+      - /portainer/Files/AppData/Config/glutun:/gluetun
     environment:
-      - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=wireguard
-      - WIREGUARD_PRIVATE_KEY=oD8r97FzARwFG8vn42LVNHoTqU22P+1ew536ujprS3A=
-      - WIREGUARD_ADDRESSES=10.14.0.2/16
-      - SERVER_COUNTRIES=United States,Netherlands,Switzerland,Australia,United Kingdom,Canada
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - OPENVPN_USER=I3cZPlSUx6cMRKiU
+      - OPENVPN_PASSWORD=GGksyoZYxebMvyn4TV3yYp4u1bjJO7W2
+      - FREE_ONLY=on
+      - SERVER_COUNTRIES=Netherlands
     ports:
       - "8722:5000/tcp"
       - "2880:1080/tcp"
-      - "6881:6881/tcp"
-      - "8080:8080/tcp"
       - "9117:9117/tcp"
-      - "6881:6881/udp"
     restart: "unless-stopped"
   
   proxy-server:
     container_name: "tamilmv-torznab-proxy"
     image: "febinbaiju/tamilmv-torznab-proxy"
     environment:
-      - TAMILMV_URL=https://www.1tamilmv.wtf
+      - TAMILMV_URL=https://www.1tamilmv.tips
     depends_on:
       gluetun:
         condition: service_healthy
