@@ -12,10 +12,11 @@ import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import parseTorrent from 'parse-torrent';
 
 const app = express();
-const port = 5000;
+const port = 5001;
 const TAMILMV_URL = process.env.TAMILMV_URL;
 
 app.use(cors());
+app.set('view engine', 'pug');
 
 const searchMovies = async keyword => {
 	console.log('Page:', `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`);
@@ -318,6 +319,14 @@ const processKeyword = key => {
 
 	return '';
 };
+
+app.get('/', async (request, response) => {
+	response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
+});
+
+app.post('/', async (request, response) => {
+	response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
+});
 
 app.get('/api', async (request, response) => {
 	console.log('query', request.query);
