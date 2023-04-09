@@ -54,7 +54,10 @@ const getConfig = () => new Promise((resolve, reject) => {
 		if (error) {
 			reject(error);
 		} else {
-			resolve(row);
+			resolve({
+				...row,
+				tamilMvUrl: row.tamilmv_url,
+			});
 		}
 	});
 });
@@ -98,14 +101,15 @@ const initializeDB = async () => {
 };
 
 const searchMovies = async keyword => {
-	console.log('Page:', `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`);
-	const grabToken = await fetch(`${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`, {
+	const {tamilMvUrl} = await getConfig();
+	console.log('Page:', `${tamilMvUrl}/index.php?/search/&q=${keyword}&quick=1`);
+	const grabToken = await fetch(`${tamilMvUrl}/index.php?/search/&q=${keyword}&quick=1`, {
 		headers: {
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0',
 			Accept: '*/*',
 			'Accept-Language': 'en-US,en;q=0.5',
 			'Accept-Encoding': 'gzip, deflate, br',
-			Referer: `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`,
+			Referer: `${tamilMvUrl}/index.php?/search/&q=${keyword}&quick=1`,
 			'X-Requested-With': 'XMLHttpRequest',
 			'Sec-Fetch-Dest': 'empty',
 			'Sec-Fetch-Mode': 'cors',
@@ -119,7 +123,7 @@ const searchMovies = async keyword => {
 	const tokenResult = await grabToken.json();
 	const csrfKey = (tokenResult).filters?.toString()?.match('<input type="hidden" name="csrfKey" value="(.+)">')?.[1] || '';
 
-	const grabResults = await fetch(`${TAMILMV_URL}/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy&csrfKey=${csrfKey}`, {
+	const grabResults = await fetch(`${tamilMvUrl}/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy&csrfKey=${csrfKey}`, {
 		credentials: 'include',
 		headers: {
 			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0',
@@ -131,11 +135,15 @@ const searchMovies = async keyword => {
 			'Sec-Fetch-Site': 'same-origin',
 			'Proxy-Authorization': 'Basic ZDc5YW1ibmktZ3A4ZHkyczozOWpkeXFtOHVu',
 		},
-		referrer: `${TAMILMV_URL}/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy`,
+		referrer: `${tamilMvUrl}/index.php?/search/&q=${keyword}&search_and_or=or&sortby=relevancy`,
 		method: 'GET',
 		mode: 'cors',
 	});
 	const searchResultsJson = await grabResults?.json();
+	if (searchResultsJson?.redirect) {
+		console.error(`Update URL to ${searchResultsJson?.redirect}`);
+	}
+
 	return (searchResultsJson)?.content || '';
 };
 
@@ -155,6 +163,7 @@ const getAllTopics = async content => {
 };
 
 const getMagnetLinks = async (topicUrl, keyword) => {
+	const {tamilMvUrl} = await getConfig();
 	console.log('fetching:', topicUrl);
 	const topicBody = await fetch(topicUrl, {
 		credentials: 'include',
@@ -169,7 +178,7 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 			'Sec-Fetch-User': '?1',
 			'Proxy-Authorization': 'Basic ZDc5YW1ibmktZ3A4ZHkyczozOWpkeXFtOHVu',
 		},
-		referrer: `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1&type=forums_topic`,
+		referrer: `${tamilMvUrl}/index.php?/search/&q=${keyword}&quick=1&type=forums_topic`,
 		method: 'GET',
 		mode: 'cors',
 	});
@@ -424,11 +433,13 @@ async function initializeRoutes() {
 	});
 
 	app.get('/api', async (request, response) => {
+		const {tamilMvUrl, ...configs} = await getConfig();
 		console.log('query', request.query);
 		const baseUrl = request.protocol + '://' + request.get('host');
-		const keyword = processKeyword(request.query.q) || 'nanpakal';
-		console.log('Keyword:', keyword);
 		const testMode = request.query.t === 'caps';
+		const keyword = !testMode && configs.custom_search ? configs.custom_search_keyword : processKeyword(request.query.q) || 'nanpakal';
+		console.log('Keyword:', keyword);
+
 		let rssFeed;
 		try {
 			const body = await searchMovies(keyword);
@@ -455,11 +466,13 @@ async function initializeRoutes() {
 						status: 'FAILED',
 					});
 				}
+			} else {
+				console.log('Possible Token Error');
 			}
 		} catch {
-			console.error(`Error connecting to ${TAMILMV_URL}`);
+			console.error(`Error connecting to ${tamilMvUrl}`);
 			return response.status(521).json({
-				message: `Could not connect to the server ${TAMILMV_URL}`,
+				message: `Could not connect to the server ${tamilMvUrl}`,
 				status: 'FAILED',
 			});
 		}
@@ -487,8 +500,8 @@ async function initializeRoutes() {
 app.listen(port, error => {
 	if (error) {
 		db?.close();
-		console.log('Error while starting server', TAMILMV_URL, 'at', port);
+		console.log('Error while starting server', 'at', port);
 	} else {
-		console.log('Server has been started', TAMILMV_URL, 'at port', port);
+		console.log('Server has been started', 'at port', port);
 	}
 });
