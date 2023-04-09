@@ -413,7 +413,9 @@ async function initializeRoutes() {
 		const loadSettings = await getConfig();
 		// eslint-disable-next-line no-extra-boolean-cast
 		const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search)};
-		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com', ...settings});
+		const tryUrl = `${loadSettings.tamilMvUrl}/index.php?/search/&q=${encodeURIComponent(loadSettings.custom_search_keyword)}&quick=1`;
+
+		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl, ...settings});
 	});
 
 	app.post('/', async (request, response) => {
@@ -428,8 +430,9 @@ async function initializeRoutes() {
 		const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search), ...(updateSettings ? {
 			savedMessage: 'Settings Saved!',
 		} : null)};
+		const tryUrl = `${loadSettings.tamilMvUrl}/index.php?/search/&q=${encodeURIComponent(loadSettings.custom_search_keyword)}&quick=1`;
 
-		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com', ...settings});
+		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl, ...settings});
 	});
 
 	app.get('/api', async (request, response) => {
@@ -437,7 +440,7 @@ async function initializeRoutes() {
 		console.log('query', request.query);
 		const baseUrl = request.protocol + '://' + request.get('host');
 		const testMode = request.query.t === 'caps';
-		const keyword = !testMode && configs.custom_search ? configs.custom_search_keyword : processKeyword(request.query.q) || 'nanpakal';
+		const keyword = !testMode && configs.custom_search ? encodeURIComponent(configs.custom_search_keyword) : processKeyword(request.query.q) || 'nanpakal';
 		console.log('Keyword:', keyword);
 
 		let rssFeed;
