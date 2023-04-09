@@ -19,6 +19,7 @@
     "node-fetch": "^3.3.0",
     "nodemon": "^2.0.20",
     "parse-torrent": "^11.0.7",
+    "pug": "^3.0.2",
     "underscore": "^1.13.6",
     "uuid": "^9.0.0",
     "xml": "^1.0.1"

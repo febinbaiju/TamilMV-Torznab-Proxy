@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content=
+            "width=device-width, initial-scale=1.0")
+        title=title
+    style
+        include styles.css
+    body
+        .form
+            h2=message
+            if(saved)
+                small=saved_message
+            form(action="/",method="POST")
+                div(class='separator')
+                    label(for="name") TAMILMV URL:
+                    |  
+                    input#name(type="text", name="tamilmv_url", class='fields')
+                    |  
+                    a(href='https://torrents-proxy.com/tamilmv/', target='_blank') Latest Proxy List
+                div(class="separator")
+                    label(for="custom_search_toggle") Custom Search:
+                    |  
+                    input#custom_search_toggle(type="radio", name="custom_search_toggle", value="1", checked)
+                    |  On 
+                    input#custom_search_toggle_1(type="radio", name="custom_search_toggle", value="0")
+                    |  Off
+                div(class="separator")
+                    label(for="custom_search") Custom Search Keyword:
+                    |  
+                    input#custom_search(type="text", name="custom_search", class="fields")
+                    a(href=tryUrl, target="_blank") Try
+                button(type="submit") Submit

@@ -1,0 +1,75 @@
+/* Body */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', sans-serif;
+    background-color: #f2f2f2;
+  }
+  
+  /* Form */
+  .form {
+    width: 500px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.2);
+  }
+  
+  /* Form Title */
+  .form h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #333;
+  }
+  
+  /* Input Field */
+  .fields {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 16px;
+    color: #333;
+    background-color: #f2f2f2;
+  }
+  
+  .fields:focus {
+    outline: none;
+    box-shadow: 0 0 5px #ddd;
+  }
+  
+  /* Label */
+  label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  /* Separator */
+  .separator {
+    margin-bottom: 15px;
+  }
+  
+  /* Button */
+  button {
+    display: block;
+    width: 100%;
+    margin-top: 20px;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #333;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #555;
+  }
+  
