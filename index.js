@@ -11,13 +11,17 @@ import xml from 'xml';
 import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import parseTorrent from 'parse-torrent';
 import sqlite3 from 'sqlite3';
+import nocache from 'nocache';
 
 const app = express();
 const port = 5001;
 const TAMILMV_URL = process.env.TAMILMV_URL || 'https://www.1tamilmv.tips';
 
 app.use(cors());
+app.use(nocache());
 app.set('view engine', 'pug');
+app.set('views', './views');
+app.locals.cache = false;
 
 const createTable = error => {
 	if (error) {
@@ -46,6 +50,27 @@ const getConfig = () => new Promise((resolve, reject) => {
 			reject(error);
 		} else {
 			resolve(row);
+		}
+	});
+});
+
+const updateConfig = ({
+	tamilmvUrl,
+	customSearch,
+	customSearchKeyword,
+}) => new Promise((resolve, reject) => {
+	db.prepare('UPDATE config SET tamilmv_url=?, custom_search=?, custom_search_keyword=?', (stmt, error) => {
+		if (error) {
+			reject(error);
+		} else {
+			const updateStatement = stmt.run(tamilmvUrl, customSearch, customSearchKeyword);
+			updateStatement.finalize(finalError => {
+				if (finalError) {
+					reject(finalError);
+				} else {
+					resolve(true);
+				}
+			});
 		}
 	});
 });
@@ -376,14 +401,17 @@ const processKeyword = key => {
 };
 
 async function initializeRoutes() {
-	const get = await getConfig();
-	console.log(get);
+	const loadSettings = await getConfig();
+	// eslint-disable-next-line no-extra-boolean-cast
+	const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search)};
+	console.log(settings);
 	app.get('/', async (request, response) => {
-		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
+		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com', ...settings});
 	});
 
 	app.post('/', async (request, response) => {
-		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
+		console.log(request.params)
+		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com', ...settings});
 	});
 
 	app.get('/api', async (request, response) => {
@@ -444,6 +472,15 @@ async function initializeRoutes() {
 
 		response.contentType('Content-Type', 'text/xml');
 		return response.send(xmlContent);
+	});
+
+	// Close the database connection
+	db.close(error => {
+		if (error) {
+			return console.error(error.message);
+		}
+
+		console.log('Close the database connection.');
 	});
 }
 

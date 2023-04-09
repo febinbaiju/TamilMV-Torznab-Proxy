@@ -16,6 +16,7 @@
     "express": "^4.18.2",
     "fast-xml-parser": "^4.1.2",
     "moment": "^2.29.4",
+    "nocache": "^3.0.4",
     "node-fetch": "^3.3.0",
     "nodemon": "^2.0.20",
     "parse-torrent": "^11.0.7",
