@@ -1,4 +1,4 @@
-version: '2.4'
+version: '3'
 services:
   gluetun:
     container_name: glutun-vpn
@@ -22,8 +22,12 @@ services:
   proxy-server:
     container_name: "tamilmv-torznab-proxy"
     image: "febinbaiju/tamilmv-torznab-proxy"
+    volumes:
+      - /portainer/Files/AppData/Config/tamilmv-stack:/database
     environment:
       - TAMILMV_URL=https://www.1tamilmv.tips
+    volumes:
+      - 
     depends_on:
       gluetun:
         condition: service_healthy

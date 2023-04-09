@@ -20,6 +20,7 @@
     "nodemon": "^2.0.20",
     "parse-torrent": "^11.0.7",
     "pug": "^3.0.2",
+    "sqlite3": "^5.1.6",
     "underscore": "^1.13.6",
     "uuid": "^9.0.0",
     "xml": "^1.0.1"

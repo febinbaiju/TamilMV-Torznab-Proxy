@@ -10,13 +10,68 @@ import _ from 'underscore';
 import xml from 'xml';
 import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import parseTorrent from 'parse-torrent';
+import sqlite3 from 'sqlite3';
 
 const app = express();
 const port = 5001;
-const TAMILMV_URL = process.env.TAMILMV_URL;
+const TAMILMV_URL = process.env.TAMILMV_URL || 'https://www.1tamilmv.tips';
 
 app.use(cors());
 app.set('view engine', 'pug');
+
+const createTable = error => {
+	if (error) {
+		console.error(error.message);
+	}
+
+	console.log('Connected to the tamilmv manager database.');
+	db.run('CREATE TABLE IF NOT EXISTS config (tamilmv_url TEXT, custom_search INT, custom_search_keyword TEXT)', initializeDB);
+};
+
+const db = new sqlite3.Database('./database/manager.db', createTable);
+
+const getCount = () => new Promise((resolve, reject) => {
+	db.get('SELECT COUNT(*) AS count FROM config', (error, row) => {
+		if (error) {
+			reject(error);
+		} else {
+			resolve(row.count);
+		}
+	});
+});
+
+const getConfig = () => new Promise((resolve, reject) => {
+	db.get('SELECT * FROM config', (error, row) => {
+		if (error) {
+			reject(error);
+		} else {
+			resolve(row);
+		}
+	});
+});
+
+const initializeDB = async () => {
+	const count = await getCount();
+	const insertToDB = stmt => new Promise((resolve, reject) => {
+		stmt.run(TAMILMV_URL, 0, 'movie', error => {
+			if (error) {
+				reject(error);
+			} else {
+				resolve(true);
+			}
+		});
+	});
+
+	if (count === 0) {
+		const stmt = db.prepare('INSERT INTO config VALUES (?, ?, ?)');
+		const inserted = await insertToDB(stmt);
+		if (inserted) {
+			await initializeRoutes();
+		}
+	} else {
+		await initializeRoutes();
+	}
+};
 
 const searchMovies = async keyword => {
 	console.log('Page:', `${TAMILMV_URL}/index.php?/search/&q=${keyword}&quick=1`);
@@ -320,76 +375,81 @@ const processKeyword = key => {
 	return '';
 };
 
-app.get('/', async (request, response) => {
-	response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
-});
+async function initializeRoutes() {
+	const get = await getConfig();
+	console.log(get);
+	app.get('/', async (request, response) => {
+		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
+	});
 
-app.post('/', async (request, response) => {
-	response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
-});
+	app.post('/', async (request, response) => {
+		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com'});
+	});
 
-app.get('/api', async (request, response) => {
-	console.log('query', request.query);
-	const baseUrl = request.protocol + '://' + request.get('host');
-	const keyword = processKeyword(request.query.q) || 'nanpakal';
-	console.log('Keyword:', keyword);
-	const testMode = request.query.t === 'caps';
-	let rssFeed;
-	try {
-		const body = await searchMovies(keyword);
-		if (body) {
-			try {
-				if (testMode) {
-					rssFeed = await torznabTest();
-				} else if (request.query.offset >= 50) {
-					rssFeed = await noTopics(baseUrl);
-				} else {
-					const topics = await getAllTopics(body);
-					// eslint-disable-next-line max-depth
-					if (topics.length > 0) {
-						const magnetInfo = await scrapTorrents(topics, keyword);
-						rssFeed = magnetInfo.length > 0 ? await createRssFeed(baseUrl, magnetInfo, request.query) : await noTopics(baseUrl);
-					} else {
+	app.get('/api', async (request, response) => {
+		console.log('query', request.query);
+		const baseUrl = request.protocol + '://' + request.get('host');
+		const keyword = processKeyword(request.query.q) || 'nanpakal';
+		console.log('Keyword:', keyword);
+		const testMode = request.query.t === 'caps';
+		let rssFeed;
+		try {
+			const body = await searchMovies(keyword);
+			if (body) {
+				try {
+					if (testMode) {
+						rssFeed = await torznabTest();
+					} else if (request.query.offset >= 50) {
 						rssFeed = await noTopics(baseUrl);
+					} else {
+						const topics = await getAllTopics(body);
+						// eslint-disable-next-line max-depth
+						if (topics.length > 0) {
+							const magnetInfo = await scrapTorrents(topics, keyword);
+							rssFeed = magnetInfo.length > 0 ? await createRssFeed(baseUrl, magnetInfo, request.query) : await noTopics(baseUrl);
+						} else {
+							rssFeed = await noTopics(baseUrl);
+						}
 					}
+				} catch {
+					console.error('Error fetching topics');
+					return response.status(529).json({
+						message: 'Could not get topics',
+						status: 'FAILED',
+					});
 				}
-			} catch {
-				console.error('Error fetching topics');
-				return response.status(529).json({
-					message: 'Could not get topics',
-					status: 'FAILED',
-				});
 			}
+		} catch {
+			console.error(`Error connecting to ${TAMILMV_URL}`);
+			return response.status(521).json({
+				message: `Could not connect to the server ${TAMILMV_URL}`,
+				status: 'FAILED',
+			});
 		}
-	} catch {
-		console.error(`Error connecting to ${TAMILMV_URL}`);
-		return response.status(521).json({
-			message: `Could not connect to the server ${TAMILMV_URL}`,
-			status: 'FAILED',
+
+		const parser = new XMLParser({
+			ignoreAttributes: false,
+			preserveOrder: true,
+			cdataPropName: '__cdata',
 		});
-	}
 
-	const parser = new XMLParser({
-		ignoreAttributes: false,
-		preserveOrder: true,
-		cdataPropName: '__cdata',
+		const feed = `<?xml version="1.0" encoding="UTF-8" ?>${xml(rssFeed)}`;
+		const builder = new XMLBuilder({
+			ignoreAttributes: false,
+			preserveOrder: true,
+			cdataPropName: '__cdata',
+			format: true,
+		});
+		const xmlContent = builder.build(parser.parse(feed));
+
+		response.contentType('Content-Type', 'text/xml');
+		return response.send(xmlContent);
 	});
-
-	const feed = `<?xml version="1.0" encoding="UTF-8" ?>${xml(rssFeed)}`;
-	const builder = new XMLBuilder({
-		ignoreAttributes: false,
-		preserveOrder: true,
-		cdataPropName: '__cdata',
-		format: true,
-	});
-	const xmlContent = builder.build(parser.parse(feed));
-
-	response.contentType('Content-Type', 'text/xml');
-	return response.send(xmlContent);
-});
+}
 
 app.listen(port, error => {
 	if (error) {
+		db?.close();
 		console.log('Error while starting server', TAMILMV_URL, 'at', port);
 	} else {
 		console.log('Server has been started', TAMILMV_URL, 'at port', port);
