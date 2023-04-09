@@ -26,8 +26,6 @@ services:
       - /portainer/Files/AppData/Config/tamilmv-stack:/database
     environment:
       - TAMILMV_URL=https://www.1tamilmv.tips
-    volumes:
-      - 
     depends_on:
       gluetun:
         condition: service_healthy
