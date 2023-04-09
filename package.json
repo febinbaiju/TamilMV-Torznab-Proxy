@@ -20,7 +20,6 @@
     "nocache": "^3.0.4",
     "node-fetch": "^3.3.0",
     "nodemon": "^2.0.20",
-    "parse-torrent": "^11.0.7",
     "pug": "^3.0.2",
     "sqlite3": "^5.1.6",
     "underscore": "^1.13.6",

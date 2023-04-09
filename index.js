@@ -1,4 +1,3 @@
-import {Buffer} from 'node:buffer';
 import process from 'node:process';
 import fetch from 'node-fetch';
 import express from 'express';
@@ -9,7 +8,6 @@ import moment from 'moment';
 import _ from 'underscore';
 import xml from 'xml';
 import {XMLBuilder, XMLParser} from 'fast-xml-parser';
-import parseTorrent from 'parse-torrent';
 import sqlite3 from 'sqlite3';
 import nocache from 'nocache';
 import bodyParser from 'body-parser';
@@ -51,6 +49,13 @@ const getCount = () => new Promise((resolve, reject) => {
 		}
 	});
 });
+
+function hasNonEnglishCharacters(string_) {
+	// eslint-disable-next-line no-control-regex
+	const regex = /[^\u0000-\u007F\dA-Za-z .,\-]+/; // eslint-disable-line no-useless-escape
+
+	return regex.test(string_);
+}
 
 const getConfig = () => new Promise((resolve, reject) => {
 	db.get('SELECT * FROM config', (error, row) => {
@@ -165,6 +170,18 @@ const getAllTopics = async content => {
 	return finalTopics;
 };
 
+const getSize = filename => {
+	const sizeString = filename.match(/(\d+(\.\d+)?)\s*(gb|mb)/i)?.[0];
+	if (!sizeString) {
+		return null;
+	}
+
+	const sizeNumber = Number.parseFloat(sizeString);
+	const sizeUnit = sizeString.slice(-2).toUpperCase();
+	const sizeBytes = sizeUnit === 'GB' ? sizeNumber * 1024 * 1024 * 1024 : sizeNumber * 1024 * 1024;
+	return sizeBytes;
+};
+
 const getMagnetLinks = async (topicUrl, keyword) => {
 	const {tamilMvUrl} = await getConfig();
 	console.log('fetching:', topicUrl);
@@ -202,14 +219,8 @@ const getMagnetLinks = async (topicUrl, keyword) => {
 	for (let k = 0, i = 0; k < aElements.length; k++) {
 		const magnetLink = $(aElements[k]).attr('href');
 		if (magnetLink && magnetLink.startsWith('magnet:')) {
-			// eslint-disable-next-line no-await-in-loop
-			const torrentFetch = await fetch(torrentNames[i]?.file);
-
-			// eslint-disable-next-line no-await-in-loop
-			const torrentBuffer = (Buffer.from(await torrentFetch.arrayBuffer()));
-			// eslint-disable-next-line no-await-in-loop
-			const torrentInfo = await parseTorrent(torrentBuffer);
-			const torrentSize = (torrentInfo?.info?.length) || 1000;
+			const torrentInfo = getSize(torrentNames[i]?.name?.replace('.torrent', ''));
+			const torrentSize = (torrentInfo) || 1000;
 
 			magnetLinks.push({
 				name: torrentNames[i]?.name?.replace('.torrent', ''),
@@ -454,6 +465,8 @@ async function initializeRoutes() {
 					if (testMode) {
 						rssFeed = await torznabTest();
 					} else if (request.query.offset >= 50) {
+						rssFeed = await noTopics(baseUrl);
+					} else if (configs.custom_search && hasNonEnglishCharacters(request.query.q)) {
 						rssFeed = await noTopics(baseUrl);
 					} else {
 						const topics = await getAllTopics(body);
