@@ -12,6 +12,7 @@ import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import parseTorrent from 'parse-torrent';
 import sqlite3 from 'sqlite3';
 import nocache from 'nocache';
+import bodyParser from 'body-parser';
 
 const app = express();
 const port = 5001;
@@ -19,6 +20,10 @@ const TAMILMV_URL = process.env.TAMILMV_URL || 'https://www.1tamilmv.tips';
 
 app.use(cors());
 app.use(nocache());
+app.use(bodyParser.json()); // To support JSON-encoded bodies
+app.use(bodyParser.urlencoded({ // To support URL-encoded bodies
+	extended: true,
+}));
 app.set('view engine', 'pug');
 app.set('views', './views');
 app.locals.cache = false;
@@ -59,18 +64,12 @@ const updateConfig = ({
 	customSearch,
 	customSearchKeyword,
 }) => new Promise((resolve, reject) => {
-	db.prepare('UPDATE config SET tamilmv_url=?, custom_search=?, custom_search_keyword=?', (stmt, error) => {
+	db.run('UPDATE config SET tamilmv_url=?, custom_search=?, custom_search_keyword=?', [tamilmvUrl, customSearch, customSearchKeyword], (error, rows) => {
 		if (error) {
+			console.debug(rows);
 			reject(error);
 		} else {
-			const updateStatement = stmt.run(tamilmvUrl, customSearch, customSearchKeyword);
-			updateStatement.finalize(finalError => {
-				if (finalError) {
-					reject(finalError);
-				} else {
-					resolve(true);
-				}
-			});
+			resolve(true);
 		}
 	});
 });
@@ -401,16 +400,26 @@ const processKeyword = key => {
 };
 
 async function initializeRoutes() {
-	const loadSettings = await getConfig();
-	// eslint-disable-next-line no-extra-boolean-cast
-	const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search)};
-	console.log(settings);
 	app.get('/', async (request, response) => {
+		const loadSettings = await getConfig();
+		// eslint-disable-next-line no-extra-boolean-cast
+		const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search)};
 		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com', ...settings});
 	});
 
 	app.post('/', async (request, response) => {
-		console.log(request.params)
+		const previousConfig = await getConfig();
+		const updateSettings = await updateConfig({
+			tamilmvUrl: request.body.tamilmv_url || previousConfig.tamilmv_url,
+			customSearch: request.body.custom_search_toggle === '1',
+			customSearchKeyword: request.body.custom_search || previousConfig.custom_search_keyword,
+		});
+		const loadSettings = await getConfig();
+		// eslint-disable-next-line no-extra-boolean-cast
+		const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search), ...(updateSettings ? {
+			savedMessage: 'Settings Saved!',
+		} : null)};
+
 		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl: 'http://google.com', ...settings});
 	});
 
@@ -472,15 +481,6 @@ async function initializeRoutes() {
 
 		response.contentType('Content-Type', 'text/xml');
 		return response.send(xmlContent);
-	});
-
-	// Close the database connection
-	db.close(error => {
-		if (error) {
-			return console.error(error.message);
-		}
-
-		console.log('Close the database connection.');
 	});
 }
 

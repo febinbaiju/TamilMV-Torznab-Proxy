@@ -73,3 +73,17 @@ body {
     background-color: #555;
   }
   
+  .success-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  .success-message {
+    font-size: 18px;
+  }
+  
