@@ -16,19 +16,20 @@ html(lang="en")
                 div(class='separator')
                     label(for="name") TAMILMV URL:
                     |  
-                    input#name(type="text", name="tamilmv_url", class='fields')
+                    input#name(type="text", name="tamilmv_url", class='fields', value=tamilmv_url)
                     |  
                     a(href='https://torrents-proxy.com/tamilmv/', target='_blank') Latest Proxy List
                 div(class="separator")
                     label(for="custom_search_toggle") Custom Search:
                     |  
-                    input#custom_search_toggle(type="radio", name="custom_search_toggle", value="1", checked)
+                    - var notChecked = !custom_search
+                    input#custom_search_toggle(type="radio", name="custom_search_toggle", value="1" ,checked=customSearchOn)
                     |  On 
-                    input#custom_search_toggle_1(type="radio", name="custom_search_toggle", value="0")
+                    input#custom_search_toggle_1(type="radio", name="custom_search_toggle", value="0",checked=customSearchOff)
                     |  Off
                 div(class="separator")
                     label(for="custom_search") Custom Search Keyword:
                     |  
-                    input#custom_search(type="text", name="custom_search", class="fields")
+                    input#custom_search(type="text", name="custom_search", class="fields", value=custom_search_keyword)
                     a(href=tryUrl, target="_blank") Try
                 button(type="submit") Submit
