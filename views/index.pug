@@ -10,13 +10,16 @@ html(lang="en")
     body
         .form
             h2=message
-            if(saved)
-                small=saved_message
+            if(savedMessage)
+                div(class='success-container')
+                    div(class='success-message')
+                        | &#10003;
+                br
             form(action="/",method="POST")
                 div(class='separator')
                     label(for="name") TAMILMV URL:
                     |  
-                    input#name(type="text", name="tamilmv_url", class='fields', value=tamilmv_url)
+                    input#name(type="text", name="tamilmv_url", class='fields', required, value=tamilmv_url)
                     |  
                     a(href='https://torrents-proxy.com/tamilmv/', target='_blank') Latest Proxy List
                 div(class="separator")
@@ -30,6 +33,6 @@ html(lang="en")
                 div(class="separator")
                     label(for="custom_search") Custom Search Keyword:
                     |  
-                    input#custom_search(type="text", name="custom_search", class="fields", value=custom_search_keyword)
+                    input#custom_search(type="text", name="custom_search", required, class="fields", value=custom_search_keyword)
                     a(href=tryUrl, target="_blank") Try
-                button(type="submit") Submit
+                button(type="submit") Save
