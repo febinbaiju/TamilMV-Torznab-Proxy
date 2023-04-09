@@ -15,13 +15,16 @@ import nocache from 'nocache';
 import bodyParser from 'body-parser';
 
 const app = express();
-const port = 5001;
+const port = 5000;
 const TAMILMV_URL = process.env.TAMILMV_URL || 'https://www.1tamilmv.tips';
+const globalSettings = {
+	title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager',
+};
 
 app.use(cors());
 app.use(nocache());
-app.use(bodyParser.json()); // To support JSON-encoded bodies
-app.use(bodyParser.urlencoded({ // To support URL-encoded bodies
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
 	extended: true,
 }));
 app.set('view engine', 'pug');
@@ -415,7 +418,7 @@ async function initializeRoutes() {
 		const settings = {...loadSettings, customSearch: Boolean(loadSettings.custom_search), customSearchOn: Boolean(loadSettings.custom_search), customSearchOff: !Boolean(loadSettings.custom_search)};
 		const tryUrl = `${loadSettings.tamilMvUrl}/index.php?/search/&q=${encodeURIComponent(loadSettings.custom_search_keyword)}&quick=1`;
 
-		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl, ...settings});
+		response.render('index', {...globalSettings, tryUrl, ...settings});
 	});
 
 	app.post('/', async (request, response) => {
@@ -432,7 +435,7 @@ async function initializeRoutes() {
 		} : null)};
 		const tryUrl = `${loadSettings.tamilMvUrl}/index.php?/search/&q=${encodeURIComponent(loadSettings.custom_search_keyword)}&quick=1`;
 
-		response.render('index', {title: 'TamilMV Proxy Manager', message: 'TamilMV Proxy Manager', tryUrl, ...settings});
+		response.render('index', {...globalSettings, tryUrl, ...settings});
 	});
 
 	app.get('/api', async (request, response) => {

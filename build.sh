@@ -1,0 +1,1 @@
+docker buildx build --push --tag febinbaiju/tamilmv-torznab-proxy:latest --platform linux/amd64,linux/arm/v7,linux/arm64 .
