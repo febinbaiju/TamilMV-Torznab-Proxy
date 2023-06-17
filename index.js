@@ -1,4 +1,5 @@
 import process from 'node:process';
+import url from 'node:url';
 import fetch from 'node-fetch';
 import express from 'express';
 import cors from 'cors';
@@ -85,6 +86,18 @@ const updateConfig = ({
 	});
 });
 
+const updateRedirectUrl = tamilMvUrl => new Promise((resolve, reject) => {
+	db.run('UPDATE config SET tamilmv_url=?', [tamilMvUrl], (error, rows) => {
+		if (error) {
+			console.debug(rows);
+			reject(error);
+		} else {
+			console.log(`[SUCCESS] Updated URL to ${tamilMvUrl}`);
+			resolve(true);
+		}
+	});
+});
+
 const initializeDB = async () => {
 	const count = await getCount();
 	const insertToDB = stmt => new Promise((resolve, reject) => {
@@ -149,7 +162,10 @@ const searchMovies = async keyword => {
 	});
 	const searchResultsJson = await grabResults?.json();
 	if (searchResultsJson?.redirect) {
-		console.error(`Update URL to ${searchResultsJson?.redirect}`);
+		const redirectBaseUrl = url.parse(searchResultsJson?.redirect);
+		const newRedirectUrl = `${redirectBaseUrl.protocol}//${redirectBaseUrl.hostname}`;
+		await updateRedirectUrl(newRedirectUrl);
+		console.error(`Update URL to ${newRedirectUrl}`);
 	}
 
 	return (searchResultsJson)?.content || '';
