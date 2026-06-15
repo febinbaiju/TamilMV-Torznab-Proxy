@@ -2,7 +2,7 @@ import express from 'express';
 import xml from 'xml';
 import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import {getConfig, updateConfig} from './db.js';
-import {GLOBAL_SETTINGS} from './config.js';
+import {GLOBAL_SETTINGS, KEYWORDS_TO_EXCLUDE} from './config.js';
 import {
 	searchMovies,
 	scrapTorrents,
@@ -132,7 +132,7 @@ router.get('/api', async (request, response) => {
 				rssFeed = await noTopics(baseUrl);
 			} else {
 				const topics = searchResults
-					.filter(result => Boolean(result.starter_role))
+					.filter(result => Boolean(result.starter_role) && !KEYWORDS_TO_EXCLUDE.some(keyword => result.title.toLowerCase().includes(keyword.toLowerCase())))
 					.map(result => ({
 						url: getTopicUrl(result.tid, result.title, tamilMvUrl),
 						title: result.title,

@@ -7,3 +7,11 @@ export const GLOBAL_SETTINGS = {
 	title: 'TamilMV Proxy Manager',
 	message: 'TamilMV Proxy Manager',
 };
+
+export const KEYWORDS_TO_EXCLUDE = [
+	'PreDVD',
+	'720p',
+	'240p',
+	'480p',
+	'360p',
+];
