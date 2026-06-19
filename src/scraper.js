@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import {v5 as uuid} from 'uuid';
 import moment from 'moment';
 import {getConfig} from './db.js';
+import {KEYWORDS_TO_EXCLUDE} from './config.js';
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0';
 
@@ -102,16 +103,18 @@ export async function getMagnetLinks(topicUrl, keyword) {
 
 			const publishedDateTime = $('time[datetime]').first().attr('datetime');
 
-			releases.push({
-				name: cleanTitle(title),
-				torrentPath,
-				guid: uuid(title, '4d1d290e-e395-4ba3-9ef4-ec90def49826'),
-				magnet: magnetLink,
-				publishedDate: moment(publishedDateTime)
-					.utc()
-					.format('ddd, DD MMM YYYY HH:mm:ss ZZ'),
-				torrentSize: sizeBytes,
-			});
+			if (!KEYWORDS_TO_EXCLUDE.some(keyword => title.toLowerCase().includes(keyword.toLowerCase()))) {
+				releases.push({
+					name: cleanTitle(title),
+					torrentPath,
+					guid: uuid(title, '4d1d290e-e395-4ba3-9ef4-ec90def49826'),
+					magnet: magnetLink,
+					publishedDate: moment(publishedDateTime)
+						.utc()
+						.format('ddd, DD MMM YYYY HH:mm:ss ZZ'),
+					torrentSize: sizeBytes,
+				});
+			}
 		});
 
 		return releases;
