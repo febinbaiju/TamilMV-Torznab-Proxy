@@ -1,5 +1,7 @@
 FROM node:20-slim
 
+ENV NODE_OPTIONS="--no-network-family-autoselection --dns-result-order=ipv4first"
+
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
