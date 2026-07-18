@@ -117,6 +117,29 @@ router.get('/api', async (request, response) => {
 		: processKeyword(request.query.q) || 'drishyam 4';
 	console.log('Keyword:', keyword);
 
+	// Skip search entirely if the query contains non-English characters
+	// to avoid slow/hanging API calls on the upstream site
+	if (!testMode && hasNonEnglishCharacters(rawQuery)) {
+		console.log('Non-English query detected, returning empty results to avoid slow upstream calls.');
+	
+		const emptyFeed = await noTopics(baseUrl);
+		const parser = new XMLParser({
+			ignoreAttributes: false,
+			preserveOrder: true,
+			cdataPropName: '__cdata',
+		});
+		const feed = `<?xml version="1.0" encoding="UTF-8" ?>${xml(emptyFeed)}`;
+		const builder = new XMLBuilder({
+			ignoreAttributes: false,
+			preserveOrder: true,
+			cdataPropName: '__cdata',
+			format: true,
+		});
+		const xmlContent = builder.build(parser.parse(feed));
+		response.contentType('Content-Type', 'text/xml');
+		return response.send(xmlContent);
+	}
+
 	let rssFeed;
 	try {
 		const searchResults = await searchMovies(keyword);
@@ -124,11 +147,6 @@ router.get('/api', async (request, response) => {
 			if (testMode) {
 				rssFeed = await torznabTest();
 			} else if (request.query.offset >= 50) {
-				rssFeed = await noTopics(baseUrl);
-			} else if (
-				configs.custom_search
-        && hasNonEnglishCharacters(request.query.q)
-			) {
 				rssFeed = await noTopics(baseUrl);
 			} else {
 				const topics = searchResults
