@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-process-exit */
 import process from 'node:process';
 import app from './src/app.js';
-import {PORT} from './src/config.js';
+import {PORT, VERSION} from './src/config.js';
 import {connectDatabase, initializeDatabaseSchema, closeDatabase} from './src/db.js';
 
 try {
@@ -17,7 +17,7 @@ try {
 			console.error('Error while starting server at port', PORT, error);
 			closeDatabase().catch(console.error);
 		} else {
-			console.log('Server has been started at port', PORT);
+			console.log('Server has been started at port', PORT, `(v${VERSION})`);
 		}
 	});
 

@@ -2,7 +2,7 @@ import express from 'express';
 import xml from 'xml';
 import {XMLBuilder, XMLParser} from 'fast-xml-parser';
 import {getConfig, updateConfig} from './db.js';
-import {GLOBAL_SETTINGS} from './config.js';
+import {GLOBAL_SETTINGS, VERSION} from './config.js';
 import {
 	searchMovies,
 	scrapTorrents,
@@ -108,19 +108,19 @@ router.get('/api', async (request, response) => {
 	}
 
 	const {tamilMvUrl, ...configs} = config;
-	console.log('query', request.query);
+	console.log(`[v${VERSION}] query`, request.query);
 	const baseUrl = request.protocol + '://' + request.get('host');
 	const testMode = request.query.t === 'caps';
 
 	const keyword = (!testMode && configs.custom_search)
 		? encodeURIComponent(configs.custom_search_keyword)
 		: processKeyword(request.query.q) || 'drishyam 4';
-	console.log('Keyword:', keyword);
+	console.log(`[v${VERSION}] Keyword:`, keyword);
 
 	let rssFeed;
 	try {
 		if (!testMode && hasNonEnglishCharacters(request.query.q)) {
-			console.log('Skipping searchMovies because non-English characters are detected in the query.');
+			console.log(`[v${VERSION}] Skipping searchMovies because non-English characters are detected in the query...`);
 			rssFeed = await noTopics(baseUrl);
 		} else {
 			const searchResults = await searchMovies(keyword);

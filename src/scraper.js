@@ -3,7 +3,7 @@ import * as cheerio from 'cheerio';
 import {v5 as uuid} from 'uuid';
 import moment from 'moment';
 import {getConfig} from './db.js';
-import {KEYWORDS_TO_EXCLUDE} from './config.js';
+import {KEYWORDS_TO_EXCLUDE, VERSION} from './config.js';
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/110.0';
 
@@ -28,7 +28,7 @@ export async function searchMovies(keyword) {
 
 	const tamilMvUrl = config.tamilMvUrl;
 	const searchURL = `${tamilMvUrl}/search/api/search.php?q=${keyword}&priority=1&sort=title_asc&page=1&per_page=100`;
-	console.log('Searching...', searchURL);
+	console.log(`[v${VERSION}] Searching...`, searchURL);
 
 	try {
 		const fetchSearch = await fetch(searchURL, {
@@ -45,7 +45,7 @@ export async function searchMovies(keyword) {
 		const searchResults = await fetchSearch.json();
 		return searchResults?.results || [];
 	} catch (error) {
-		console.error(`Error in searchMovies for keyword "${keyword}":`, error.message);
+		console.error(`[v${VERSION}] Error in searchMovies for keyword "${keyword}":`, error.message);
 		throw error;
 	}
 }
@@ -53,7 +53,7 @@ export async function searchMovies(keyword) {
 export async function getMagnetLinks(topicUrl, keyword) {
 	const config = await getConfig();
 	const tamilMvUrl = config ? config.tamilMvUrl : '';
-	console.log('Fetching topic:', topicUrl);
+	console.log(`[v${VERSION}] Fetching topic:`, topicUrl);
 
 	try {
 		const topicBody = await fetch(topicUrl, {
@@ -119,7 +119,7 @@ export async function getMagnetLinks(topicUrl, keyword) {
 
 		return releases;
 	} catch (error) {
-		console.error(`Error fetching/parsing topic ${topicUrl}:`, error.message);
+		console.error(`[v${VERSION}] Error fetching/parsing topic ${topicUrl}:`, error.message);
 		return [];
 	}
 }

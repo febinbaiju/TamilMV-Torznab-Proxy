@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import {DEFAULT_TAMILMV_URL} from './config.js';
+import {DEFAULT_TAMILMV_URL, VERSION} from './config.js';
 
 let db;
 
@@ -7,10 +7,10 @@ export function connectDatabase(dbPath = './database/manager.db') {
 	return new Promise((resolve, reject) => {
 		db = new sqlite3.Database(dbPath, error => {
 			if (error) {
-				console.error('Database connection error:', error.message);
+				console.error(`[v${VERSION}] Database connection error:`, error.message);
 				reject(error);
 			} else {
-				console.log('Connected to the tamilmv manager database.');
+				console.log(`[v${VERSION}] Connected to the tamilmv manager database.`);
 				resolve(db);
 			}
 		});
@@ -23,7 +23,7 @@ export function initializeDatabaseSchema() {
 			'CREATE TABLE IF NOT EXISTS config (tamilmv_url TEXT, custom_search INT, custom_search_keyword TEXT)',
 			async error => {
 				if (error) {
-					console.error('Schema creation error:', error.message);
+					console.error(`[v${VERSION}] Schema creation error:`, error.message);
 					return reject(error);
 				}
 
@@ -104,7 +104,7 @@ export function updateRedirectUrl(tamilMvUrl) {
 			if (error) {
 				reject(error);
 			} else {
-				console.log(`[SUCCESS] Updated URL to ${tamilMvUrl}`);
+				console.log(`[v${VERSION}] [SUCCESS] Updated URL to ${tamilMvUrl}`);
 				resolve(true);
 			}
 		});
