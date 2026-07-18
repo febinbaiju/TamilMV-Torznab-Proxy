@@ -104,7 +104,7 @@ export async function getMagnetLinks(topicUrl, keyword) {
 			const publishedDateTime = $('time[datetime]').first().attr('datetime');
 
 			if (!KEYWORDS_TO_EXCLUDE.some(keyword => title.toLowerCase().includes(keyword.toLowerCase()))) {
-				releases.push({
+				const release = {
 					name: cleanTitle(title),
 					torrentPath,
 					guid: uuid(title, '4d1d290e-e395-4ba3-9ef4-ec90def49826'),
@@ -113,9 +113,19 @@ export async function getMagnetLinks(topicUrl, keyword) {
 						.utc()
 						.format('ddd, DD MMM YYYY HH:mm:ss ZZ'),
 					torrentSize: sizeBytes,
-				});
+				};
+				releases.push(release);
+				console.log(`[v${VERSION}] Added release: "${release.name}"`);
+			} else {
+				console.log(`[v${VERSION}] Excluded release due to keyword match: "${title}"`);
 			}
 		});
+
+		if (releases.length === 0) {
+			console.log(`[v${VERSION}] No releases added for topic: ${topicUrl}`);
+		} else {
+			console.log(`[v${VERSION}] Total releases added: ${releases.length} for topic: ${topicUrl}`);
+		}
 
 		return releases;
 	} catch (error) {
