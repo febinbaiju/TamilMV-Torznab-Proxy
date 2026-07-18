@@ -131,7 +131,6 @@ router.get('/api', async (request, response) => {
 					rssFeed = await noTopics(baseUrl);
 				} else {
 					const topics = searchResults
-						.filter(result => Boolean(result.starter_role))
 						.map(result => ({
 							url: getTopicUrl(result.tid, result.title, tamilMvUrl),
 							title: result.title,
